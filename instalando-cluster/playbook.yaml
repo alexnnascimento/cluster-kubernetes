@@ -98,10 +98,12 @@
         cmd: wget https://github.com/containernetworking/plugins/releases/download/v1.2.0/cni-plugins-linux-amd64-v1.2.0.tgz
 
     - name: Criando diretório CNI
+      become: true
       file: path=/opt/cni/bin state=directory mode=0755
 
     - name: Extraindo CNI plugins
       shell:
+        become: true
         cmd: tar Cxzvf /opt/cni/bin cni-plugins-linux-amd64-v1.1.1.tgz
 
         
