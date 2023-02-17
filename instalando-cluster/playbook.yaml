@@ -1,0 +1,116 @@
+---
+- hosts: master
+  tasks:
+    - name: Atualizando o sistema Operacional
+      become: true  
+      apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
+      
+    - name: Configurando hostname 
+      ansible.builtin.hostname:
+        name: master
+      become: true  
+
+    - ansible.posix.sysctl:
+        name: net.bridge.bridge-nf-call-iptables
+        value: '1'
+        sysctl_set: true
+        reload: true
+      become: true
+    - ansible.posix.sysctl:
+        name: net.ipv4.ip_forward    
+        value: '1'
+        sysctl_set: true
+        reload: true
+      become: true            
+    - ansible.posix.sysctl:
+        name: net.bridge.bridge-nf-call-ip6tables
+        value: '1'
+        sysctl_set: true
+        reload: true
+      become: true
+
+    - name: Removendo docker old
+      ansible.builtin.yum:
+        name: "{{ packages }}"
+        state: absent
+      vars:
+        packages:
+        - docker
+        - docker-engine
+        - docker.io
+        - containerd
+        - runc
+      become: true
+
+    - name: Novo update do sistema Operacional
+      become: true
+      apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
+      become: true  
+
+    - name: Atualize o índice de pacotes apt e instale pacotes para permitir que o apt use um repositório por HTTPS
+      ansible.builtin.yum:
+        name: "{{ packages }}"
+        state: present
+      vars:
+        packages:
+        - ca-certificates
+        - curl
+        - gnupg
+        - lsb-release
+      become: true   
+     
+    - name: Criando diretório recurivo para download Docker’s oficial GPG key
+      file: path=/etc/apt/keyrings state=directory mode=0755
+    
+    - name: Adicionando Repo
+      block:
+
+      - name: Adicionando Docker oficial GPG key
+        become: true  
+        shell:
+          cmd: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --yes --dearmor -o /etc/apt/keyrings/docker.gpg 
+      
+      - name: Adicionando repositorio Docker
+        become: true
+        shell:
+          cmd: 'echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null'
+        #state: present   
+ 
+    - name: Atualizando o sistema Operacional
+      become: true  
+      apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
+   
+    - name: Instalando Containerd
+      ansible.builtin.apt:
+        name: "{{ packages }}"
+        state: absent
+      vars:
+        packages:
+        #- docker
+        #- docker-engine
+        #- docker.io
+        - containerd
+    
+    - name: Baixando cni-plugin .tgz 
+      shell:
+        cmd: wget https://github.com/containernetworking/plugins/releases/download/v1.2.0/cni-plugins-linux-amd64-v1.2.0.tgz
+
+    - name: Criando diretório CNI
+      file: path=/opt/cni/bin state=directory mode=0755
+
+    - name: Extraindo CNI plugins
+      shell:
+        cmd: tar Cxzvf /opt/cni/bin cni-plugins-linux-amd64-v1.1.1.tgz
+
+        
+
+
+
+
+
+
+
+
+
