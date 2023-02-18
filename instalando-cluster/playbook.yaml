@@ -30,7 +30,7 @@
       become: true
 
     - name: Removendo docker old
-      ansible.builtin.yum:
+      ansible.builtin.apt:
         name: "{{ packages }}"
         state: absent
       vars:
@@ -48,7 +48,7 @@
       become: true  
 
     - name: Atualize o índice de pacotes apt e instale pacotes para permitir que o apt use um repositório por HTTPS
-      ansible.builtin.yum:
+      ansible.builtin.apt:
         name: "{{ packages }}"
         state: present
       vars:
@@ -57,27 +57,36 @@
         - curl
         - gnupg
         - lsb-release
-      become: true   
+      become: true  
+
+    - name: Instalando curl e gpg
+      become: true
+      ansible.builtin.apt:
+        name: "{{ packages }}"
+        state: present
+      vars:
+        packages:
+          - curl
+          - gpg
      
     - name: Criando diretório recurivo para download Docker’s oficial GPG key
       file: path=/etc/apt/keyrings state=directory mode=0755
     
     - name: Adicionando Repo
       block:
-
+    
       - name: Adicionando Docker oficial GPG key
         become: true  
         shell:
-          cmd: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --yes --dearmor -o /etc/apt/keyrings/docker.gpg 
+          cmd: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --yes --dearmor -o /etc/apt/keyrings/docker.gpg 
       
       - name: Adicionando repositorio Docker
         become: true
         shell:
           cmd: 'echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null'
-        #state: present   
- 
+"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null'
+         
     - name: Atualizando o sistema Operacional
       become: true  
       apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
@@ -103,8 +112,8 @@
 
     - name: Extraindo CNI plugins
       shell:
-        become: true
-        cmd: tar Cxzvf /opt/cni/bin cni-plugins-linux-amd64-v1.1.1.tgz
+        #become: true
+        cmd: tar Cxzvf /opt/cni/bin cni-plugins-linux-amd64-v1.2.0.tgz
 
         
 
