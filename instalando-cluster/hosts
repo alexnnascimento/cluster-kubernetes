@@ -1,8 +1,8 @@
 #ansible_python_interpreter=/usr/bin/python
 [control_plane]
-54.144.34.91
+34.239.42.120
 [worker_node]
-54.160.54.37
+35.153.184.238
 
 #[control_plane:vars]
 #ansible_ssh_private_key_file=~/.ssh/id_rsa

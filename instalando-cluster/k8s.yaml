@@ -30,7 +30,7 @@
   
   - name: Executando o comando sysctl para implementas as configurações
     become: true
-    command: "sysctl --system"   
+    command: "sysctl --system"
     
   - name: Adicionar a chave do repositorio APT
     become: true
@@ -47,7 +47,7 @@
   - name: Instalando o ContainerD
     become: true
     apt: 
-      name: containerd.io=1.6.12-1 
+      name: containerd.io=1.6.18-1 
       update_cache: yes
 
   - name: Criação do diretório de configuração do ContainerD
@@ -104,4 +104,35 @@
         - kubectl=1.26.0-00
         - kubeadm=1.26.0-00
         - kubelet=1.26.0-00    
-        state: present 
+        state: present
+        update_cache: yes
+
+- name: Inicio do Cluster k8s
+  hosts: control_plane
+  tasks:
+  - name: Comando de Inicialização
+    command: kubeadm init
+    become: true
+
+  - name: Criação do diretório .Kube 
+    file:
+      path: ~/.kube
+      state: directory
+      owner: root
+      group: root
+      mode: 0644
+      become: true
+
+  - name: Copia do arquivo kube config
+    ansible.builtin.copy:
+      become: true
+      dest: ~/.kube/config
+      src: /etc/kubernetes/admin.conf
+      remote_src: yes
+      owner: root
+      group: root
+      mode: 0640
+
+  - name: Aplicar a instalação do Calico
+    command: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+    become: true
