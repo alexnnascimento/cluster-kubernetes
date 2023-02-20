@@ -1,0 +1,107 @@
+---
+- name: Instalar e configurar o ContainerD
+  hosts: all
+  tasks:
+  - name: Instalação dos módulos do Kernel Linux
+    become: true
+    ansible.builtin.copy:
+      src: ./k8s.conf
+      dest: /etc/modules-load.d/k8s.conf
+      mode: '644'
+      
+  - name: Adicionando o overlay
+    become: true
+    modprobe:
+      name: overlay
+      state: present
+
+  - name: Adicionando o br_netfilter
+    become: true
+    modprobe:
+      name: br_netfilter
+      state: present  
+  
+  - name: Configuração dos parametros do sysctl
+    become: true
+    ansible.builtin.copy:
+      src: ./k8s-cri.conf
+      dest: /etc/sysctl.d/k8s.conf
+      mode: '644'
+  
+  - name: Executando o comando sysctl para implementas as configurações
+    become: true
+    command: "sysctl --system"   
+    
+  - name: Adicionar a chave do repositorio APT
+    become: true
+    apt_key: 
+      url: https://download.docker.com/linux/ubuntu/gpg  
+      state: present
+
+  - name: Adicionando o repositorio para instalar ContainerD
+    become: true
+    apt_repository:
+      repo: deb https://download.docker.com/linux/ubuntu jammy stable
+      state: present
+
+  - name: Instalando o ContainerD
+    become: true
+    apt: 
+      name: containerd.io=1.6.12-1 
+      update_cache: yes
+
+  - name: Criação do diretório de configuração do ContainerD
+    become: true
+    file:
+      path: /etc/containerd
+      state: directory
+      owner: root
+      group: root
+      mode: 0644
+
+  - name: Cirar o arquivo de configuração
+    become: true
+    shell: containerd config default > /etc/containerd/config.toml
+  
+  - name: Trocando o config do containerd
+    become: true
+    command: sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml
+
+  - name: Restart ContainerD
+    become: true
+    ansible.builtin.service:
+      name: containerd
+      state: restarted
+
+- name: Instalação do Kubeadm, KUbelet e do Kubectl
+  hosts: all
+  tasks:
+    - name: Instalação dos pacotes requesitos
+      become: true
+      apt:
+        pkg:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        state: present
+
+    - name: Adicionando a chave do repositorio
+      become: true
+      apt_key:
+        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        state: present 
+ 
+    - name: Adicionando o repositorio
+      become: true
+      apt_repository:
+        repo: deb https://apt.kubernetes.io/ kubernetes-xenial main
+        state: present 
+
+    - name: Instalação dos pacote Kubelet, Kubead e Kubectl
+      become: true
+      apt:
+        pkg:
+        - kubectl=1.26.0-00
+        - kubeadm=1.26.0-00
+        - kubelet=1.26.0-00    
+        state: present 

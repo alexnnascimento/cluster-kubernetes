@@ -65,7 +65,7 @@
 
     - name: Novo update do sistema Operacional
       become: true
-      apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
+      apt: update_cache=yes force_apt_get=yes
       become: true  
 
     - name: Atualize o índice de pacotes apt e instale pacotes para permitir que o apt use um repositório por HTTPS
@@ -80,14 +80,13 @@
         - lsb-release
       become: true  
 
-    - name: Instalando curl e gpg
+    - name: Instalando gpg
       become: true
       ansible.builtin.apt:
         name: "{{ packages }}"
         state: present
       vars:
         packages:
-          - curl
           - gpg
      
     - name: Criando diretório recurivo para download Docker’s oficial GPG key
@@ -105,16 +104,9 @@
       - name: Adicionando repositorio Docker
         become: true
         shell:
-          cmd: 'echo \
-"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-  $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null'
-         
-    - name: Atualizando o sistema Operacional
-      become: true  
-      apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
+          cmd: echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
    
     - name: Instalando Containerd
-      become: true
       ansible.builtin.apt:
         name: "{{ packages }}"
         state: present
@@ -124,14 +116,14 @@
         #- docker-engine
         #- docker.io
         - containerd
-        state: start  
+      become: true
 
     - name: teste
       become: true
       shell:
         cmd: 'echo [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options] \
-    SystemdCgroup = true >> /etc/containerd/config.toml'
-    
+      SystemdCgroup = true >> /etc/containerd/config.toml'
+       
     - name: Baixando cni-plugin tgz
       shell:
         cmd: wget https://github.com/containernetworking/plugins/releases/download/v1.2.0/cni-plugins-linux-amd64-v1.2.0.tgz
