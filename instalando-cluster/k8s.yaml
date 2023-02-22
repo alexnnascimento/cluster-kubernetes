@@ -31,6 +31,9 @@
   - name: Executando o comando sysctl para implementas as configurações
     become: true
     command: "sysctl --system"
+
+  - name: Desabilitando swap
+    command: sudo swapoff -a 
     
   - name: Adicionar a chave do repositorio APT
     become: true
@@ -108,42 +111,50 @@
         update_cache: yes
 
 
-#- name: Inicio do Cluster k8s
-#  hosts: control_plane
-#  tasks:
-#    - name: Comando de Inicialização
-#      command: kubeadm init
-#      become: true
-      
-      
+- name: Inicio do Cluster k8s
+  hosts: control_plane
+  tasks:
+    - name: Comando de Inicialização
+      command: kubeadm init
+      become: true
+      ignore_errors: true
+
+    - name: Criação do diretório .Kube  
+      #become: true    
+      file:
+        path: /home/ubuntu/.kube
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: 0755
+
+
     - name: Copia do arquivo kube config
-      file: path=~/.kube state=directory mode=0644
-      #become: true
-
-#    - name: Criação do diretório .Kube      
-#      file:
-#        path: ~/.kube
-#        state: directory
-#        owner: root
-#        group: root
-#        mode: 0644
-#        become: true
-
-    - name: Copia arquivo Kube config
       become: true
-      shell:
-        cmd: cp -ar /etc/kubernetes/admin.conf /home/ubuntu/.kube/config 
-       
-              
-#    - name: Copia do arquivo kube config
-#      ansible.builtin.copy:
-#        dest: ~/.kube/config
-#        src: /etc/kubernetes/admin.conf
-#        remote_src: yes
-#        owner: ubuntu
-#        group: root
-#        mode: '0640'
+      ansible.builtin.copy:
+        dest: /home/ubuntu/.kube/config
+        src: /etc/kubernetes/admin.conf
+        remote_src: yes
+        owner: ubuntu
+        group: ubuntu
+        mode: 0640
 
+
+    - name: Download foo.conf
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/calico.yaml
+        dest: /home/ubuntu
+        mode: '0440'
+    
+    
+#    - name: Baixando calico.yaml
+#      command: wget https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/calico.yaml
+
+    - name: Habilitando calico CIDR
+      command: sed -i 's/# - name:\ CALICO_IPV4POOL_CIDR/- name:\ CALICO_IPV4POOL_CIDR/g' calico.yaml 
+
+    - name: Alterando range de IP para o utilizado na rede atual
+      command: sed -i 's/#\s*value:\s*"192\.168\.0\.0\/16"/  value:\ "172.16.0.0\/16"/g' calico.yaml
+ 
     - name: Aplicar a instalação do Calico
-      command: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
-      become: true
+      command: kubectl apply -f /home/ubuntu/calico.yaml
