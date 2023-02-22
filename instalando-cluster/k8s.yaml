@@ -107,32 +107,43 @@
         state: present
         update_cache: yes
 
-- name: Inicio do Cluster k8s
-  hosts: control_plane
-  tasks:
-  - name: Comando de Inicialização
-    command: kubeadm init
-    become: true
 
-  - name: Criação do diretório .Kube 
-    file:
-      path: ~/.kube
-      state: directory
-      owner: root
-      group: root
-      mode: 0644
+#- name: Inicio do Cluster k8s
+#  hosts: control_plane
+#  tasks:
+#    - name: Comando de Inicialização
+#      command: kubeadm init
+#      become: true
+      
+      
+    - name: Copia do arquivo kube config
+      file: path=~/.kube state=directory mode=0644
+      #become: true
+
+#    - name: Criação do diretório .Kube      
+#      file:
+#        path: ~/.kube
+#        state: directory
+#        owner: root
+#        group: root
+#        mode: 0644
+#        become: true
+
+    - name: Copia arquivo Kube config
       become: true
+      shell:
+        cmd: cp -ar /etc/kubernetes/admin.conf /home/ubuntu/.kube/config 
+       
+              
+#    - name: Copia do arquivo kube config
+#      ansible.builtin.copy:
+#        dest: ~/.kube/config
+#        src: /etc/kubernetes/admin.conf
+#        remote_src: yes
+#        owner: ubuntu
+#        group: root
+#        mode: '0640'
 
-  - name: Copia do arquivo kube config
-    ansible.builtin.copy:
+    - name: Aplicar a instalação do Calico
+      command: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
       become: true
-      dest: ~/.kube/config
-      src: /etc/kubernetes/admin.conf
-      remote_src: yes
-      owner: root
-      group: root
-      mode: 0640
-
-  - name: Aplicar a instalação do Calico
-    command: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
-    become: true

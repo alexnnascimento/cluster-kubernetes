@@ -1,13 +1,13 @@
 #ansible_python_interpreter=/usr/bin/python
 [control_plane]
-34.239.42.120
+54.225.21.163
 [worker_node]
-35.153.184.238
+54.162.203.247
 
-#[control_plane:vars]
-#ansible_ssh_private_key_file=~/.ssh/id_rsa
-#ansible_user=ubuntu
+[control_plane:vars]
+ansible_ssh_private_key_file=~/.ssh/id_rsa
+ansible_user=ubuntu
 
-#[worker_node:vars]
-#ansible_ssh_private_key_file=~/.ssh/id_rsa
-#ansible_user=ubuntu
+[worker_node:vars]
+ansible_ssh_private_key_file=~/.ssh/id_rsa
+ansible_user=ubuntu
