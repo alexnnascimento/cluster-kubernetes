@@ -2,6 +2,17 @@
 
 # Para execução deste script é necessário ter o terraformer instalado
 # Caso não tenha segue abaixo link para instalação
+###################################
+###################################
+###### INSTALAÇÃO NO LINUX ########
+#  export PROVIDER=aws 
+#  curl -LO https://github.com/GoogleCloudPlatform/terraformer/releases/download/$(curl -s https://api.github.com/repos/GoogleCloudPlatform/terraformer/releases/latest | grep tag_name | cut -d '"' -f 4)/terraformer-${PROVIDER}-linux-amd64
+#  chmod +x terraformer-${PROVIDER}-linux-amd64
+#  sudo mv terraformer-${PROVIDER}-linux-amd64 /usr/local/bin/terraformer
+###################################
+###################################
+###################################
+# Abaixo link com mais informações e caso ocorra erro na instalação:
 # https://github.com/GoogleCloudPlatform/terraformer
 # Em breve será adicionado a instalação automatica por esse script
 
