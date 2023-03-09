@@ -140,7 +140,7 @@
         mode: 0640
 
 
-    - name: Download foo.conf
+    - name: Download calico
       ansible.builtin.get_url:
         url: https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/calico.yaml
         dest: /home/ubuntu
@@ -158,3 +158,8 @@
  
     - name: Aplicar a instalação do Calico
       command: kubectl apply -f /home/ubuntu/calico.yaml
+
+#    - name: Create a Deployment by reading the definition from a local file
+#      kubernetes.core.k8s:
+#        state: present
+#        src: /home/ubuntu/calico.yaml
