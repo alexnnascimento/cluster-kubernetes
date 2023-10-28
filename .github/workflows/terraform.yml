@@ -17,7 +17,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     defaults:
       run:
-        working-directory: cluster-kubernetes/criando-infra/vpc
+        working-directory: criando-infra/vpc
 
     steps:
     - name: Checkout
