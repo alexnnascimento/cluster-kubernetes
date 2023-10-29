@@ -52,21 +52,21 @@ resource "aws_subnet" "privatesubnets_b" {
 
 }
 
-resource "aws_eip" "nateIP" {
-  vpc = true
-}
+#resource "aws_eip" "nateIP" {
+#  vpc = true
+#}
 
 # Criando nat gateway
-resource "aws_nat_gateway" "NATgw" {
-  allocation_id = aws_eip.nateIP.id
-  subnet_id     = aws_subnet.privatesubnets_a.id
-}
+#resource "aws_nat_gateway" "NATgw" {
+#  allocation_id = aws_eip.nateIP.id
+#  subnet_id     = aws_subnet.privatesubnets_a.id
+#}
 
 # Criando route table para public subnets
 resource "aws_route_table" "PublicRT" {
   vpc_id = aws_vpc.Main.id
   route {
-    cidr_block = "0.0.0.0/0" 
+    cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.IGW.id
   }
 }
@@ -75,8 +75,8 @@ resource "aws_route_table" "PublicRT" {
 resource "aws_route_table" "PrivateRT" {
   vpc_id = aws_vpc.Main.id
   route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.NATgw.id
+    cidr_block     = "172.16.0.0/16"
+    #nat_gateway_id = aws_nat_gateway.NATgw.id
   }
 }
 
