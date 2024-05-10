@@ -44,13 +44,13 @@
   - name: Adicionando o repositorio para instalar ContainerD
     become: true
     apt_repository:
-      repo: deb https://download.docker.com/linux/ubuntu jammy stable
+      repo: deb https://download.docker.com/linux/ubuntu noble stable
       state: present
 
   - name: Instalando o ContainerD
     become: true
     apt: 
-      name: containerd.io=1.6.18-1 
+      name: containerd.io=1.6.31-1 
       update_cache: yes
 
   - name: Criação do diretório de configuração do ContainerD
@@ -88,29 +88,34 @@
         - curl
         state: present
 
-    - name: Adicionando a chave do repositorio
+    - name: Adicionando a chave do repositório
       become: true
       apt_key:
-        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
-        state: present 
+        url: https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key
+        state: present
  
-    - name: Adicionando o repositorio
-      become: true
-      apt_repository:
-        repo: deb https://apt.kubernetes.io/ kubernetes-xenial main
-        state: present 
+- name: Adicionando a chave do repositório
+  become: true
+  apt_key:
+    url: https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key
+    state: present
 
-    - name: Instalação dos pacote Kubelet, Kubead e Kubectl
+- name: Adicionando o repositório
+  become: true
+  apt_repository:
+    repo: deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /
+    state: present
+
+    - name: Instalação dos pacotes Kubelet, Kubeadm e Kubectl
       become: true
       apt:
         pkg:
-        - kubectl=1.26.0-00
-        - kubeadm=1.26.0-00
-        - kubelet=1.26.0-00    
+        - kubectl=1.28.0-00
+        - kubeadm=1.28.0-00
+        - kubelet=1.28.0-00
         state: present
         update_cache: yes
-
-
+    
 - name: Inicio do Cluster k8s
   hosts: control_plane
   tasks:
