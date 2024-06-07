@@ -21,5 +21,5 @@ Crie o Arquivo de Inventário (hosts) na raiz com conteúdo abaixo:
 
 Execute o seguinte comando para rodar o playbook Ansible (k8s.yaml), especificando o inventário (hosts), o usuário SSH e o caminho para a chave privada:
 
-sudo ansible-playbook k8s.yaml -i hosts -u ubuntu --private-key ~/.ssh/id_rsa
+sudo ansible-playbook main yaml -i hosts -u ubuntu --private-key ~/.ssh/id_rsa
 
