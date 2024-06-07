@@ -2,139 +2,141 @@
 - name: Instalar e configurar o ContainerD
   hosts: all
   tasks:
-  - name: Instalação dos módulos do Kernel Linux
-    become: true
-    ansible.builtin.copy:
-      src: ./k8s.conf
-      dest: /etc/modules-load.d/k8s.conf
-      mode: '644'
-      
-  - name: Adicionando o overlay
-    become: true
-    modprobe:
-      name: overlay
-      state: present
-
-  - name: Adicionando o br_netfilter
-    become: true
-    modprobe:
-      name: br_netfilter
-      state: present  
-  
-  - name: Configuração dos parametros do sysctl
-    become: true
-    ansible.builtin.copy:
-      src: ./k8s-cri.conf
-      dest: /etc/sysctl.d/k8s.conf
-      mode: '644'
-  
-  - name: Executando o comando sysctl para implementas as configurações
-    become: true
-    command: "sysctl --system"
-
-  - name: Desabilitando swap
-    command: sudo swapoff -a 
-    
-  - name: Adicionar a chave do repositorio APT
-    become: true
-    apt_key: 
-      url: https://download.docker.com/linux/ubuntu/gpg  
-      state: present
-
-  - name: Adicionando o repositorio para instalar ContainerD
-    become: true
-    apt_repository:
-      repo: deb https://download.docker.com/linux/ubuntu noble stable
-      state: present
-
-  - name: Instalando o ContainerD
-    become: true
-    apt: 
-      name: containerd.io=1.6.31-1 
-      update_cache: yes
-
-  - name: Criação do diretório de configuração do ContainerD
-    become: true
-    file:
-      path: /etc/containerd
-      state: directory
-      owner: root
-      group: root
-      mode: 0644
-
-  - name: Cirar o arquivo de configuração
-    become: true
-    shell: containerd config default > /etc/containerd/config.toml
-  
-  - name: Trocando o config do containerd
-    become: true
-    command: sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml
-
-  - name: Restart ContainerD
-    become: true
-    ansible.builtin.service:
-      name: containerd
-      state: restarted
-
-- name: Instalação do Kubeadm, KUbelet e do Kubectl
-  hosts: all
-  tasks:
-    - name: Instalação dos pacotes requesitos
+    - name: Instalação dos módulos do Kernel Linux
       become: true
-      apt:
-        pkg:
-        - apt-transport-https
-        - ca-certificates
-        - curl
+      ansible.builtin.copy:
+        src: ./k8s.conf
+        dest: /etc/modules-load.d/k8s.conf
+        mode: '644'
+      
+    - name: Adicionando o overlay
+      become: true
+      community.general.modprobe:
+        name: overlay
         state: present
 
-    - name: Adicionando a chave do repositório
+    - name: Adicionando o br_netfilter
       become: true
-      apt_key:
+      community.general.modprobe:
+        name: br_netfilter
+        state: present
+  
+    - name: Configuração dos parâmetros do sysctl
+      become: true
+      ansible.builtin.copy:
+        src: ./k8s-cri.conf
+        dest: /etc/sysctl.d/k8s.conf
+        mode: '644'
+  
+    - name: Executando o comando sysctl para implementar as configurações
+      become: true
+      ansible.builtin.command: "sysctl --system"
+
+    - name: Disable swap for current session
+      become: true
+      ansible.builtin.command: swapoff -a
+
+    - name: Disable swap permanently, persist reboots
+      become: true
+      ansible.builtin.replace:
+        path: /etc/fstab
+        regexp: '^(\s*)([^#\n]+\s+)(\w+\s+)swap(\s+.*)$'
+        replace: '#\1\2\3swap\4'
+        backup: yes
+    
+    - name: Adicionar a chave do repositório APT
+      become: true
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg  
+        state: present
+
+    - name: Adicionar o repositório para instalar ContainerD
+      become: true
+      ansible.builtin.apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu jammy stable
+        state: present
+
+    - name: Instalar o ContainerD
+      become: true
+      ansible.builtin.apt: 
+        name: containerd.io
+        update_cache: yes
+
+    - name: Criação do diretório de configuração do ContainerD
+      become: true
+      ansible.builtin.file:
+        path: /etc/containerd
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Criar o arquivo de configuração
+      become: true
+      ansible.builtin.shell: containerd config default > /etc/containerd/config.toml
+  
+    - name: Trocar o config do containerd
+      become: true
+      ansible.builtin.command: sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml
+
+    - name: Reiniciar ContainerD
+      become: true
+      ansible.builtin.service:
+        name: containerd
+        state: restarted
+
+- name: Instalar o Kubeadm, Kubelet e o Kubectl
+  hosts: all
+  tasks:
+    - name: Instalação dos pacotes requisitos
+      become: true
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+        state: present
+
+    - name: Adicionar a chave do repositório
+      become: true
+      ansible.builtin.apt_key:
         url: https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key
         state: present
  
-- name: Adicionando a chave do repositório
-  become: true
-  apt_key:
-    url: https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key
-    state: present
-
-- name: Adicionando o repositório
-  become: true
-  apt_repository:
-    repo: deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /
-    state: present
-
-    - name: Instalação dos pacotes Kubelet, Kubeadm e Kubectl
+    - name: Adicionar o repositório
       become: true
-      apt:
-        pkg:
-        - kubectl=1.28.0-00
-        - kubeadm=1.28.0-00
-        - kubelet=1.28.0-00
+      ansible.builtin.apt_repository:
+        repo: deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /
+        state: present
+
+    - name: Instalar os pacotes Kubelet, Kubeadm e Kubectl
+      become: true
+      ansible.builtin.apt:
+        name:
+          - kubectl=1.28.0-00
+          - kubeadm=1.28.0-00
+          - kubelet=1.28.0-00
         state: present
         update_cache: yes
-    
-- name: Inicio do Cluster k8s
+
+- name: Iniciar o Cluster Kubernetes
   hosts: control_plane
   tasks:
     - name: Comando de Inicialização
-      command: kubeadm init
       become: true
+      ansible.builtin.command: kubeadm init
       ignore_errors: true
 
-    - name: Criação do diretório .Kube  
-      #become: true    
-      file:
+    - name: Criação do diretório .kube  
+      become: true
+      ansible.builtin.file:
         path: /home/ubuntu/.kube
         state: directory
         owner: ubuntu
         group: ubuntu
-        mode: 0755
+        mode: '0755'
 
-
-    - name: Copia do arquivo kube config
+    - name: Copiar o arquivo kube config
       become: true
       ansible.builtin.copy:
         dest: /home/ubuntu/.kube/config
@@ -142,46 +144,39 @@
         remote_src: yes
         owner: ubuntu
         group: ubuntu
-        mode: 0640
+        mode: '0640'
 
-
-#    - name: Download calico
-#      ansible.builtin.get_url:
-#        url: https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/calico.yaml
-#        dest: /home/ubuntu
-#        mode: '0440'
+    - name: Baixar calico.yaml
+      become: true
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/calico.yaml
+        dest: /home/ubuntu/calico.yaml
+        mode: '0640'
     
-    
-#    - name: Baixando calico.yaml
-#      command: wget https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/calico.yaml
+    - name: Habilitar calico CIDR
+      become: true
+      ansible.builtin.command: sed -i 's/# - name:\ CALICO_IPV4POOL_CIDR/- name:\ CALICO_IPV4POOL_CIDR/g' /home/ubuntu/calico.yaml
 
-    - name: Habilitando calico CIDR
-      command: sed -i 's/# - name:\ CALICO_IPV4POOL_CIDR/- name:\ CALICO_IPV4POOL_CIDR/g' calico.yaml 
-
-    - name: Alterando range de IP para o utilizado na rede atual
-      command: sed -i 's/#\s*value:\s*"192\.168\.0\.0\/16"/  value:\ "172.16.0.0\/16"/g' calico.yaml
+    - name: Alterar range de IP para o utilizado na rede atual
+      become: true
+      ansible.builtin.command: sed -i 's/#\s*value:\s*"192\.168\.0\.0\/16"/  value:\ "172.16.0.0\/16"/g' /home/ubuntu/calico.yaml
  
     - name: Aplicar a instalação do Calico
-      command: kubectl apply -f /home/ubuntu/calico.yaml
-
-#    - name: Create a Deployment by reading the definition from a local file
-#      kubernetes.core.k8s:
-#        state: present
-#        src: /home/ubuntu/calico.yaml
+      become: true
+      ansible.builtin.command: kubectl apply -f /home/ubuntu/calico.yaml
 
     - name: Criar comando de Join
-      shell: kubeadm token create --print-join-command
+      become: true
+      ansible.builtin.shell: kubeadm token create --print-join-command
       register: join_command_raw
 
-    - name: Adicionando comando de join no fact
-      set_fact: join_command="{{ join_command_raw.stdout }}"
+    - name: Adicionar comando de join no fact
+      ansible.builtin.set_fact:
+        join_command: "{{ join_command_raw.stdout }}"
 
-- name: Iniciando o Kubernetes Worker Node
-  hosts: worker_node
+- name: Iniciar o Kubernetes Worker Node
+  hosts: worker
   tasks:
-  #- name: Limpando instalacao existente 
-  #  command: kubeadm reset -f
- 
-  - name: Executando o comando de join
-    become: true
-    command: "{{ hostvars[groups['control_plane'][0]]['join_command'] }}"
+    - name: Executar o comando de join
+      become: true
+      ansible.builtin.command: "{{ hostvars[groups['control_plane'][0]]['join_command'] }}"
