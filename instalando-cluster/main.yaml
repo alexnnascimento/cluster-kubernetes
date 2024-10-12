@@ -8,18 +8,21 @@
         src: ./k8s.conf
         dest: /etc/modules-load.d/k8s.conf
         mode: '644'
+      when: ansible_virtualization_type != "docker"    
       
     - name: Adicionando o overlay
       become: true
       community.general.modprobe:
         name: overlay
         state: present
+      when: ansible_virtualization_type != "docker"   
 
     - name: Adicionando o br_netfilter
       become: true
       community.general.modprobe:
         name: br_netfilter
         state: present
+      when: ansible_virtualization_type != "docker"     
   
     - name: Configuração dos parâmetros do sysctl
       become: true
@@ -27,15 +30,18 @@
         src: ./k8s-cri.conf
         dest: /etc/sysctl.d/k8s.conf
         mode: '644'
-  
+      when: ansible_virtualization_type != "docker"   
+
     - name: Executando o comando sysctl para implementar as configurações
       become: true
       ansible.builtin.command: "sysctl --system"
+      when: ansible_virtualization_type != "docker"   
 
     - name: Disable swap for current session
       become: true
       ansible.builtin.command: swapoff -a
-
+      when: ansible_virtualization_type != "docker"   
+      
     - name: Disable swap permanently, persist reboots
       become: true
       ansible.builtin.replace:
@@ -44,18 +50,21 @@
         replace: '#\1\2\3swap\4'
         backup: yes
     
-    - name: Adicionar a chave do repositório APT
-      become: true
-      ansible.builtin.apt_key:
-        url: https://download.docker.com/linux/ubuntu/gpg  
-        state: present
-
-    - name: Adicionar o repositório para instalar ContainerD
-      become: true
-      ansible.builtin.apt_repository:
-        repo: deb https://download.docker.com/linux/ubuntu jammy stable
-        state: present
-
+    - name: Adicionando APT Key do docker
+      block:
+        - name: Apt Key Download
+          ansible.builtin.get_url:
+            url: https://download.docker.com/linux/ubuntu/gpg
+            dest: /etc/apt/keyrings/docker.asc
+            checksum: sha256:1500c1f56fa9e26b9b8f42452a553675796ade0807cdce11975eb98170b3a570
+    
+        - name: Aadicionando repositorio do Docker
+          ansible.builtin.apt_repository:
+            #repo: "[deb arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.example.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+            repo: deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu   {{ ansible_distribution_release }} stable
+            filename: /etc/apt/sources.list.d/docker
+            state: present
+    
     - name: Instalar o ContainerD
       become: true
       ansible.builtin.apt: 
@@ -88,7 +97,7 @@
 - name: Instalar o Kubeadm, Kubelet e o Kubectl
   hosts: all
   tasks:
-    - name: Instalação dos pacotes requisitos
+    - name: Instalação dos pacotes dos requisitos
       become: true
       ansible.builtin.apt:
         name:
