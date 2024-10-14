@@ -191,7 +191,7 @@
 
     - name: Adicionando o comando de join no fact
       ansible.builtin.set_fact:
-        join_command: "{{ join_command_raw.stdout }}"
+        join_command: "{{ join_command_raw.stdout }}"    
 
 - name: Incluindo worker node ao cluster kubernetes
   hosts: worker
